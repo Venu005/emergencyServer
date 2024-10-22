@@ -80,3 +80,94 @@ Each client maintains a local cache file named `cache_[PID].txt`, where [PID] is
 ## Security Note
 
 This application uses UDP broadcast messages, which are not encrypted. For use in a production environment, additional security measures should be implemented.
+
+## DORA Process
+
+W Our Emergency Service System follows the DHCP DORA (Discover, Offer, Request, Acknowledgment) process, we can draw an analogy to help understand the communication flow. Let's break it down with code examples:
+
+### Actual Implementation
+
+1. **Query (combines Discover and Request):**
+   The client sends a query to the server using UDP broadcast.
+
+   ```cpp:client.cpp
+   // Client sends query
+   std::cout << "Enter query (1:Police, 2:Ambulance, 3:Fire, 4:Vehicle, 5:Food, 6:Blood): ";
+   std::getline(std::cin, query);
+   int queryInt = std::stoi(query);
+
+   sendto(sockfd, query.c_str(), query.size(), 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
+   ```
+
+2. **Response (combines Offer and Acknowledge):**
+   The server processes the query and sends back the response.
+
+   ```cpp:server.cpp
+   // Server receives query and sends response
+   int n = recvfrom(sock, buffer, BUFFER_SIZE, 0, (struct sockaddr*)&clientAddr, &clientAddrLen);
+   int query = atoi(buffer);
+
+   std::string response = "Invalid query";
+   if (emergencyNumbers.find(query) != emergencyNumbers.end()) {
+       response = emergencyNumbers[query];
+   }
+
+   sendto(sock, response.c_str(), response.size(), 0, (struct sockaddr*)&clientAddr, clientAddrLen);
+   ```
+
+### DHCP-like Analogy
+
+To humor the analogy, let's break it down in a DORA-like way:
+
+1. **Discover:**
+   The client sends out a "discover" message.
+
+   ```cpp:client.cpp
+   // Client "discovers" by sending query
+   std::string query = "1";  // Asking for Police number
+   sendto(sockfd, query.c_str(), query.size(), 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
+   ```
+
+2. **Offer:**
+   The server responds with an "offer".
+
+   ```cpp:server.cpp
+   // Server "offers" by processing query
+   int query = atoi(buffer);
+   std::string response = emergencyNumbers[query];
+   // (Preparing to send, actual send in Acknowledge step)
+   ```
+
+3. **Request:**
+   In our simplified system, the initial query acts as both Discover and Request.
+
+4. **Acknowledge:**
+   The server "acknowledges" by sending the response.
+
+   ```cpp:server.cpp
+   // Server "acknowledges" by sending response
+   sendto(sock, response.c_str(), response.size(), 0, (struct sockaddr*)&clientAddr, clientAddrLen);
+   ```
+
+   The client receives the acknowledgment:
+
+   ```cpp:client.cpp
+   // Client receives "acknowledgment"
+   memset(buffer, 0, BUFFER_SIZE);
+   int n = recvfrom(sockfd, buffer, BUFFER_SIZE, 0, nullptr, nullptr);
+   if (n < 0) {
+       std::cerr << "Failed to receive response from server." << std::endl;
+   } else {
+       std::string response(buffer);
+       std::cout << "Response from server: " << response << std::endl;
+   }
+   ```
+
+### Key Differences from Traditional DORA
+
+1. **Simplified Process:** Our system combines the traditional four steps into essentially two steps: query (combining Discover and Request) and response (combining Offer and Acknowledgment).
+2. **Stateless Communication:** Unlike DHCP, our system uses stateless UDP communication. Each query-response pair is independent.
+3. **Broadcast Usage:** The client uses broadcast for all communications, not just discovery.
+4. **No Lease Time:** The information provided by the server doesn't have an expiration time, though the client does cache responses.
+
+This simplified DORA-like process allows for quick, efficient communication of emergency service information in a lightweight, easy-to-implement system, while still maintaining some conceptual similarities to the more complex DHCP DORA process.
