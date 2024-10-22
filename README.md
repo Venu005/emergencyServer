@@ -23,8 +23,8 @@ The Emergency Service System is a UDP-based client-server application designed t
 To compile the server and client, use the following commands:
 
 ```bash
-g++ -std=c++11 -pthread server.cpp -o server
-g++ -std=c++11 client.cpp -o client
+g++  server.cpp -o server
+g++  client.cpp -o client
 ```
 
 ## Running the Application
